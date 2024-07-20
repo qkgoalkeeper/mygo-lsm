@@ -21,4 +21,14 @@ func Test_SkipList_Insert(t *testing.T) {
 
 	data = tree.Search("b")
 	fmt.Println(data.KV)
+	fmt.Println(tree.GetCount())
+
+	fmt.Println(tree.GetValues())
+
+	tree.Delete("b")
+
+	fmt.Println(tree.GetCount())
+
+	fmt.Println(tree.GetValues())
+
 }

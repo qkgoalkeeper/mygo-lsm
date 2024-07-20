@@ -4,6 +4,7 @@ import (
 	"github.com/whuanle/lsm/kv"
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -33,6 +34,7 @@ type (
 		randSource     rand.Source // 随机数⽣成
 		probability    float64
 		probTable      []float64
+		rWLock         *sync.RWMutex
 		prevNodesCache []*Node
 	}
 )
@@ -50,7 +52,7 @@ func NewSkipList(maxLevel int, probability float64) *SkipList {
 
 	// Initialize prevNodesCache
 	prevNodesCache := make([]*Node, maxLevel)
-
+	rWLock := &sync.RWMutex{}
 	// Initialize SkipList
 	return &SkipList{
 		Node:           Node{next: make([]*Element, maxLevel)},
@@ -60,6 +62,7 @@ func NewSkipList(maxLevel int, probability float64) *SkipList {
 		probability:    probability,
 		probTable:      probTable,
 		prevNodesCache: prevNodesCache,
+		rWLock:         rWLock,
 	}
 }
 
@@ -139,4 +142,59 @@ func probabilityTable(probability float64, maxLevel int) (table []float64) {
 		table = append(table, prob)
 	}
 	return table
+}
+
+// Delete removes the element with the specified key from the skip list.
+func (t *SkipList) Delete(key string) bool {
+	current := &t.Node
+	update := make([]*Node, t.maxLevel)
+	// Locate the node to be deleted and record the path.
+	for i := t.maxLevel - 1; i >= 0; i-- {
+		for current.next[i] != nil && current.next[i].KV.Key < key {
+			current = &current.next[i].Node
+		}
+		update[i] = current
+	}
+	// The node to delete is the next node at level 0.
+	target := current.next[0]
+	if target == nil || target.KV.Key != key {
+		// Key not found.
+		return false
+	}
+	// Update the next pointers to remove the target node.
+	for i := 0; i < len(target.next); i++ {
+		if update[i].next[i] == target {
+			update[i].next[i] = target.next[i]
+		}
+	}
+	t.Len--
+	return true
+}
+
+func (t *SkipList) GetCount() int {
+	return t.Len
+}
+
+func (t *SkipList) GetValues() []kv.Value {
+	var values []kv.Value
+
+	// Start at the first element in the bottom layer (level 0).
+	current := t.Node.next[0]
+
+	// Traverse the bottom layer and collect all values.
+	for current != nil {
+		values = append(values, current.KV)
+		current = current.next[0]
+	}
+
+	return values
+}
+
+func (t *SkipList) Swap() *SkipList {
+	t.rWLock.Lock()
+	defer t.rWLock.Unlock()
+	maxLevel := t.maxLevel
+	probability := t.probability
+	return NewSkipList(maxLevel, probability)
+
 }
