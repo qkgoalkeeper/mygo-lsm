@@ -42,13 +42,13 @@ func query() {
 	start := time.Now()
 	v, _ := lsm.Get[TestValue]("aaaa")
 	elapse := time.Since(start)
-	fmt.Println("查找 aaaaaa 完成，消耗时间：", elapse)
+	fmt.Println("查找 aaa 完成，消耗时间：", elapse)
 	fmt.Println(v)
 
 	start = time.Now()
-	v, _ = lsm.Get[TestValue]("aazz")
+	v, _ = lsm.Get[TestValue]("czzz")
 	elapse = time.Since(start)
-	fmt.Println("查找 aazzzz 完成，消耗时间：", elapse)
+	fmt.Println("查找 aaz 完成，消耗时间：", elapse)
 	fmt.Println(v)
 }
 func insert() {
@@ -78,7 +78,7 @@ func insert() {
 	start := time.Now()
 	key := []byte{'a', 'a', 'a', 'a'}
 	lsm.Set(string(key), testV)
-	for a := 0; a < 26; a++ {
+	for a := 0; a < 4; a++ {
 		for b := 0; b < 26; b++ {
 			for c := 0; c < 26; c++ {
 				for d := 0; d < 26; d++ {

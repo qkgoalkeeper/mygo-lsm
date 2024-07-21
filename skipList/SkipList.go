@@ -68,12 +68,12 @@ func NewSkipList(maxLevel int, probability float64) *SkipList {
 
 // Put 存储⼀个元素⾄跳表中，如果key已经存在，则会更新其对应的value
 // 因此此跳表的实现暂不⽀持相同的key
-func (t *SkipList) Set(key string, value []byte) *Element {
+func (t *SkipList) Set(key string, value []byte) (oldValue kv.Value, hasOld bool) {
 	var element *Element
 	prev := t.backNodes(key) // 找出key节点在每⼀层索引应该放的位置的前⼀个节点
 	if element = prev[0].next[0]; element != nil && element.KV.Key <= key {
 		element.KV.Value = value // 如果key和prev的下⼀个节点的key相等，说明该key已存在，更新value返回 即可
-		return element
+		return element.KV, true
 	}
 	element = &Element{
 		Node: Node{
@@ -90,7 +90,7 @@ func (t *SkipList) Set(key string, value []byte) *Element {
 		prev[i].next[i] = element
 	}
 	t.Len++
-	return element
+	return element.KV, false
 }
 
 // 找到key对应的前⼀个节点索引的信息，即key节点在每⼀层索引的前⼀个节点
@@ -111,7 +111,7 @@ func (t *SkipList) backNodes(key string) []*Node {
 
 // Get 根据 key 查找对应的 Element 元素
 //未找到则返回nil
-func (t *SkipList) Search(key string) *Element {
+func (t *SkipList) Search(key string) (kv.Value, kv.SearchResult) {
 	var prev = &t.Node
 	var next *Element
 	for i := t.maxLevel - 1; i >= 0; i-- {
@@ -122,9 +122,13 @@ func (t *SkipList) Search(key string) *Element {
 		}
 	}
 	if next != nil && next.KV.Key <= key {
-		return next
+		if next.KV.Deleted == false {
+			return next.KV, kv.Success
+		} else {
+			return kv.Value{}, kv.Deleted
+		}
 	}
-	return nil
+	return kv.Value{}, kv.None
 }
 
 // ⽣成索引随机层数
@@ -145,7 +149,7 @@ func probabilityTable(probability float64, maxLevel int) (table []float64) {
 }
 
 // Delete removes the element with the specified key from the skip list.
-func (t *SkipList) Delete(key string) bool {
+func (t *SkipList) Delete(key string) (oldValue kv.Value, hasOld bool) {
 	current := &t.Node
 	update := make([]*Node, t.maxLevel)
 	// Locate the node to be deleted and record the path.
@@ -159,7 +163,7 @@ func (t *SkipList) Delete(key string) bool {
 	target := current.next[0]
 	if target == nil || target.KV.Key != key {
 		// Key not found.
-		return false
+		return kv.Value{}, false
 	}
 	// Update the next pointers to remove the target node.
 	for i := 0; i < len(target.next); i++ {
@@ -168,7 +172,7 @@ func (t *SkipList) Delete(key string) bool {
 		}
 	}
 	t.Len--
-	return true
+	return target.KV, true
 }
 
 func (t *SkipList) GetCount() int {

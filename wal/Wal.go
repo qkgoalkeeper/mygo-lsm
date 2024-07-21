@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"github.com/whuanle/lsm/kv"
-	"github.com/whuanle/lsm/sortTree"
+	"github.com/whuanle/lsm/skipList"
 	"log"
 	"os"
 	"path"
@@ -19,7 +19,7 @@ type Wal struct {
 	lock sync.Locker
 }
 
-func (w *Wal) Init(dir string) *sortTree.Tree {
+func (w *Wal) Init(dir string) *skipList.SkipList {
 	log.Println("Loading wal.log...")
 	start := time.Now()
 	defer func() {
@@ -40,14 +40,15 @@ func (w *Wal) Init(dir string) *sortTree.Tree {
 }
 
 // 通过 wal.log 文件初始化 Wal，加载文件中的 WalF 到内存
-func (w *Wal) loadToMemory() *sortTree.Tree {
+func (w *Wal) loadToMemory() *skipList.SkipList {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
 	info, _ := os.Stat(w.path)
 	size := info.Size()
-	tree := &sortTree.Tree{}
-	tree.Init()
+	//tree := &sortTree.Tree{}
+	//tree.Init()
+	tree := skipList.NewSkipList(24, 0.25)
 
 	// 空的 wal.log
 	if size == 0 {

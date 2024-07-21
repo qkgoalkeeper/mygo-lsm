@@ -2,7 +2,7 @@ package lsm
 
 import (
 	"github.com/whuanle/lsm/config"
-	"github.com/whuanle/lsm/sortTree"
+	"github.com/whuanle/lsm/skipList"
 	"github.com/whuanle/lsm/ssTable"
 	"github.com/whuanle/lsm/wal"
 	"log"
@@ -34,10 +34,13 @@ func Start(con config.Config) {
 // 初始化 Database，从磁盘文件中还原 SSTable、WalF、内存表等
 func initDatabase(dir string) {
 	database = &Database{
-		MemoryTree: &sortTree.Tree{},
+		//MemoryTree: &sortTree.Tree{},
+		MemoryTree: &skipList.SkipList{},
 		Wal:        &wal.Wal{},
 		TableTree:  &ssTable.TableTree{},
 	}
+
+	database.MemoryTree = skipList.NewSkipList(24, 0.25)
 	// 从磁盘文件中恢复数据
 	// 如果目录不存在，则为空数据库
 	if _, err := os.Stat(dir); err != nil {

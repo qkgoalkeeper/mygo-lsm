@@ -2,12 +2,11 @@ package skipList
 
 import (
 	"fmt"
-	"math"
 	"testing"
 )
 
 func Test_SkipList_Insert(t *testing.T) {
-	tree := NewSkipList(18, 1/math.E)
+	tree := NewSkipList(24, 0.25)
 
 	tree.Set("a", []byte{1, 2, 3})
 
@@ -16,11 +15,11 @@ func Test_SkipList_Insert(t *testing.T) {
 	tree.Set("b", []byte{1, 2, 3})
 	tree.Set("c", []byte{1, 2, 3})
 
-	data := tree.Search("a")
-	fmt.Println(data.KV)
+	data, _ := tree.Search("a")
+	fmt.Println(data)
 
-	data = tree.Search("b")
-	fmt.Println(data.KV)
+	data, _ = tree.Search("b")
+	fmt.Println(data)
 	fmt.Println(tree.GetCount())
 
 	fmt.Println(tree.GetValues())

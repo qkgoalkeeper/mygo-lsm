@@ -3,7 +3,7 @@ package ssTable
 import (
 	"github.com/whuanle/lsm/config"
 	"github.com/whuanle/lsm/kv"
-	"github.com/whuanle/lsm/sortTree"
+	"github.com/whuanle/lsm/skipList"
 	"log"
 	"os"
 	"time"
@@ -46,8 +46,9 @@ func (tree *TableTree) majorCompactionLevel(level int) {
 	currentNode := tree.levels[level]
 
 	// 将当前层的 SSTable 合并到一个有序二叉树中
-	memoryTree := &sortTree.Tree{}
-	memoryTree.Init()
+	//memoryTree := &sortTree.Tree{}
+	//memoryTree.Init()
+	memoryTree := skipList.NewSkipList(24, 0.25)
 
 	tree.lock.Lock()
 	for currentNode != nil {
