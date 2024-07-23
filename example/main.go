@@ -1,13 +1,62 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/whuanle/lsm"
 	"github.com/whuanle/lsm/config"
+	pb "github.com/whuanle/lsm/proto"
+	"google.golang.org/grpc"
+	"net"
 	"net/http"
 	"time"
 )
+
+type server struct {
+	pb.UnimplementedKeyValueServiceServer
+}
+
+func (s *server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, error) {
+	start := time.Now()
+	value := TestValue{
+		A: req.GetValue().GetA(),
+		B: req.GetValue().GetB(),
+		C: req.GetValue().GetC(),
+		D: req.GetValue().GetD(),
+	}
+	lsm.Set(req.GetKey(), value)
+	elapse := time.Since(start)
+	return &pb.SetResponse{
+		Message:     "Insert completed",
+		ElapsedTime: elapse.String(),
+	}, nil
+}
+
+func (s *server) Search(ctx context.Context, req *pb.SearchRequest) (*pb.SearchResponse, error) {
+	start := time.Now()
+	v, _ := lsm.Get[TestValue](req.GetKey())
+	elapse := time.Since(start)
+	return &pb.SearchResponse{
+		Key:         req.GetKey(),
+		Value:       &pb.TestValue{A: v.A, B: v.B, C: v.C, D: v.D},
+		ElapsedTime: elapse.String(),
+	}, nil
+}
+
+func startGRPCServer() {
+	lis, err := net.Listen("tcp", ":9090")
+	if err != nil {
+		fmt.Printf("failed to listen: %v", err)
+		return
+	}
+	s := grpc.NewServer()
+	pb.RegisterKeyValueServiceServer(s, &server{})
+	fmt.Println("gRPC server listening on :9090")
+	if err := s.Serve(lis); err != nil {
+		fmt.Printf("failed to serve: %v", err)
+	}
+}
 
 type TestValue struct {
 	A int64  `json:"a"`
@@ -36,8 +85,11 @@ func main() {
 
 	router.POST("/set", setHandler)
 	router.POST("/search", searchHandler)
-
-	router.Run(":8080")
+	go startGRPCServer()
+	err := router.Run(":8080")
+	if err != nil {
+		return
+	}
 }
 
 func setHandler(c *gin.Context) {
